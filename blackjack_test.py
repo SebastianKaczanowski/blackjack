@@ -1,12 +1,119 @@
+# from __future__ import annotations (works in 3.7 +)
 import unittest
+from abc import ABC
 
-from typing import Sequence
+from typing import Sequence, List
 from itertools import groupby
-from blackjack import Game, Card, GameFactory, CardType, CardColor
+from blackjack import Game, Card, GameFactory, CardType, CardColor, Shuffle, Deck
+
+
+class GivenOrderShuffle(Shuffle, ABC):
+    cards: List[Card]
+
+    def __init__(self, cards: List[Card]):
+        self.cards = cards
+        self.cards.reverse()
+
+    def next_card_index(self, deck: Deck) -> int:
+        next_card: Card = self.cards.pop()
+        return deck.cards.index(next_card)
+
+
+# ♤ ♥ ♧ ♦
+
+def str_to_card(s: str, index: int = 0) -> Card:
+    return Card(CardType(s[index]), CardColor(s[index + 1]))
+
+
+def c(s: str) -> Card:
+    return str_to_card(s)
+
+
+def cs(s: str, separator_len: int = 1) -> List[Card]:
+    return list(map(lambda index: str_to_card(s, index), range(0, len(s), 2 + separator_len)))
+
+
+class GameResult:
+    deuce: bool = False
+
+    player_busts: bool = False
+
+    croupier_busts: bool = False
+
+    croupier_wins: bool = False
+
+    player_wins: bool = False
+
+    def make_player_winning(self):
+        self.player_wins = True
+        return self
+
+    def make_croupier_winning(self):
+        self.croupier_wins = True
+        return self
+
+    def make_croupier_bust(self):
+        self.croupier_busts = True
+        return self.make_player_winning()
+
+    def assert_game_result(self, game: Game, test_case: unittest.TestCase) -> None:
+        test_case.assertEqual(self.deuce, game.deuce())
+        test_case.assertEqual(self.player_busts, game.player_busts())
+        test_case.assertEqual(self.croupier_busts, game.croupier_busts())
+        test_case.assertEqual(self.croupier_wins, game.croupier_wins())
+        test_case.assertEqual(self.player_wins, game.player_wins())
+
+    @staticmethod
+    def players_win_check(game: Game, test_case: unittest.TestCase) -> None:
+        result = GameResult()
+        result.make_player_winning()
+        result.assert_game_result(game, test_case)
+
+    @staticmethod
+    def croupier_win_check(game: Game, test_case: unittest.TestCase) -> None:
+        result = GameResult()
+        result.make_croupier_winning()
+        result.assert_game_result(game, test_case)
 
 
 class BlackjackTest(unittest.TestCase):
     factory: GameFactory = GameFactory()
+
+    def test_1(self):
+        print(cs("A♤ Q♥ 2♦"))
+
+    def test_win(self):
+        croupier_cards: str = "2♦ 4♧ 5♤ J♧"
+
+        game = self.factory.game_with_shuffle(GivenOrderShuffle(
+            cs("K♤ Q♥ " + croupier_cards)
+        ))
+        game.start()
+        GameResult.players_win_check(game, self)
+
+        game.croupier_hit()
+        game.croupier_hit()
+        GameResult.croupier_win_check(game, self)
+
+        self.assertEqual(cs(croupier_cards), game.croupier_cards)
+
+    def check_one_hand(self, hand: str, expectedResult: GameResult):
+        cards = cs(hand, 2)
+        game = self.factory.game_with_shuffle(GivenOrderShuffle(cards))
+        game.start()
+        actions = list(map(lambda index: hand[index], range(2, len(hand), 4)))
+
+        for action in actions[4:]:
+            if action == "p":
+                game.player_hit()
+            else:
+                game.croupier_hit()
+
+        expectedResult.assert_game_result(game, self)
+
+    def test_various_hands(self):
+        self.check_one_hand("K♤p Q♥p 2♦c 4♧c 5♤c J♧c", GameResult().make_croupier_winning())
+        self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤c J♧c", GameResult().make_croupier_bust())
 
     def test_card_equal(self):
         print(Card(CardType.KING, CardColor.CLUB))

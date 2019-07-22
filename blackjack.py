@@ -1,6 +1,6 @@
 import itertools
 from abc import ABC
-from typing import Sequence, Dict
+from typing import Sequence, Dict, List
 from enum import Enum
 from random import randint
 
@@ -143,15 +143,17 @@ class Croupier:
         next_card_index = self.shuffle.next_card_index(self.deck)
         return self.deck.get_card(next_card_index)
 
-    def next_few_cards(self, cards_number: int) -> Sequence[Card]:
+    def next_few_cards(self, cards_number: int) -> List[Card]:
         return list(map(lambda _: self.next_card(), ([1]*cards_number)))
 
 
 class Game:
 
     croupier: Croupier
-    human_player_cards: Sequence[Card]
-    croupier_cards: Sequence[Card]
+    human_player_cards: List[Card]
+    croupier_cards: List[Card]
+
+    was_croupier_hit: bool = False
 
     def __init__(self, croupier: Croupier):
         self.croupier = croupier
@@ -168,6 +170,27 @@ class Game:
 
     def get_cards_left_in_deck(self) -> Sequence[Card]:
         return self.croupier.get_cards_left_in_deck()
+
+    def croupier_hit(self):
+        self.croupier_cards.extend(self.croupier.next_few_cards(1))
+        self.was_croupier_hit = True
+
+    def deuce(self) -> bool:
+        return False
+
+
+    def croupier_wins(self) -> bool:
+        return self.was_croupier_hit
+
+    def player_wins(self) -> bool:
+        return not self.was_croupier_hit
+
+
+    def croupier_busts(self) -> bool:
+        return False
+
+    def player_busts(self) -> bool:
+        return False
 
 
 class GameFactory:
