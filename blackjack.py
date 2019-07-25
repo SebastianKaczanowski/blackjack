@@ -147,20 +147,23 @@ class Croupier:
         return list(map(lambda _: self.next_card(), ([1]*cards_number)))
 
 
-class Game:
+class GameResultKeeper:
 
-    croupier: Croupier
+    MAX_SCORE: int = 21
+
     human_player_cards: List[Card]
     croupier_cards: List[Card]
 
     was_croupier_hit: bool = False
 
-    def __init__(self, croupier: Croupier):
-        self.croupier = croupier
+    def __init__(self):
+        self.human_player_cards = []
+        self.croupier_cards = []
 
-    def start(self) -> None:
-        self.human_player_cards = self.croupier.next_few_cards(2)
-        self.croupier_cards = self.croupier.next_few_cards(2)
+    def start(self, human_player_cards: List[Card], croupier_cards: List[Card]):
+        self.human_player_hit(human_player_cards)
+        self.croupier_hit(croupier_cards)
+        self.was_croupier_hit = False
 
     def get_croupier_cards(self) -> Sequence[Card]:
         return self.croupier_cards
@@ -168,23 +171,21 @@ class Game:
     def get_human_player_cards(self) -> Sequence[Card]:
         return self.human_player_cards
 
-    def get_cards_left_in_deck(self) -> Sequence[Card]:
-        return self.croupier.get_cards_left_in_deck()
-
-    def croupier_hit(self):
-        self.croupier_cards.extend(self.croupier.next_few_cards(1))
+    def croupier_hit(self, cards: List[Card]):
+        self.croupier_cards.extend(cards)
         self.was_croupier_hit = True
+
+    def human_player_hit(self, cards: List[Card]):
+        self.human_player_cards.extend(cards)
 
     def deuce(self) -> bool:
         return False
-
 
     def croupier_wins(self) -> bool:
         return self.was_croupier_hit
 
     def player_wins(self) -> bool:
         return not self.was_croupier_hit
-
 
     def croupier_busts(self) -> bool:
         return False
@@ -193,13 +194,37 @@ class Game:
         return False
 
 
+class Game:
+
+    croupier: Croupier
+    result_keeper: GameResultKeeper
+
+    was_croupier_hit: bool = False
+
+    def __init__(self, croupier: Croupier, result_keeper: GameResultKeeper):
+        self.croupier = croupier
+        self.result_keeper = result_keeper
+
+    def __getattr__(self, attr):
+        return getattr(self.result_keeper, attr)
+
+    def start(self) -> None:
+        self.result_keeper.start(self.croupier.next_few_cards(2), self.croupier.next_few_cards(2))
+
+    def get_cards_left_in_deck(self) -> Sequence[Card]:
+        return self.croupier.get_cards_left_in_deck()
+
+    def croupier_hit(self):
+        self.result_keeper.croupier_hit(self.croupier.next_few_cards(1))
+
+
 class GameFactory:
 
     def croupier(self, shuffle: Shuffle):
         return Croupier(Deck(), shuffle)
 
     def game_with_shuffle(self, shuffle: Shuffle):
-        return Game(self.croupier(shuffle))
+        return Game(self.croupier(shuffle), GameResultKeeper())
 
     def game(self) -> Game:
         RandomShuffle()

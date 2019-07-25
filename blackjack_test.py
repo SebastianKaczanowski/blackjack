@@ -11,7 +11,7 @@ class GivenOrderShuffle(Shuffle, ABC):
     cards: List[Card]
 
     def __init__(self, cards: List[Card]):
-        self.cards = cards
+        self.cards = cards.copy()
         self.cards.reverse()
 
     def next_card_index(self, deck: Deck) -> int:
@@ -79,6 +79,9 @@ class GameResult:
 class BlackjackTest(unittest.TestCase):
     factory: GameFactory = GameFactory()
 
+    def player_action(self, act: str) -> bool:
+        return "p" == act
+
     def test_1(self):
         print(cs("A♤ Q♥ 2♦"))
 
@@ -97,25 +100,33 @@ class BlackjackTest(unittest.TestCase):
 
         self.assertEqual(cs(croupier_cards), game.croupier_cards)
 
-    def check_one_hand(self, hand: str, expectedResult: GameResult):
+    def cards_for_action_predicate(self, cards: List[Card], actions: List[str], predicate) -> List[Card]:
+        return list(map(lambda p: p[0], filter(lambda p: predicate(p[1]), zip(cards, actions))))
+
+    def check_one_hand(self, hand: str, expected_result: GameResult):
         cards = cs(hand, 2)
         game = self.factory.game_with_shuffle(GivenOrderShuffle(cards))
         game.start()
         actions = list(map(lambda index: hand[index], range(2, len(hand), 4)))
+        player_cards = self.cards_for_action_predicate(cards, actions, lambda p: self.player_action(p))
+        croupier_cards = self.cards_for_action_predicate(cards, actions, lambda p: not self.player_action(p))
 
         for action in actions[4:]:
-            if action == "p":
+            if self.player_action(action):
                 game.player_hit()
             else:
                 game.croupier_hit()
 
-        expectedResult.assert_game_result(game, self)
+        self.assertEqual(player_cards, game.get_human_player_cards())
+        self.assertEqual(croupier_cards, game.get_croupier_cards())
+        expected_result.assert_game_result(game, self)
 
     def test_various_hands(self):
         self.check_one_hand("K♤p Q♥p 2♦c 4♧c 5♤c J♧c", GameResult().make_croupier_winning())
         self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤c J♧c", GameResult().make_croupier_bust())
 
-    def test_card_equal(self):
+    @staticmethod
+    def test_card_equal():
         print(Card(CardType.KING, CardColor.CLUB))
         print({Card(CardType.KING, CardColor.CLUB), Card(CardType.QUEEN, CardColor.DIAMOND)})
 
