@@ -18,11 +18,14 @@ class GivenOrderShuffle(Shuffle, ABC):
         next_card: Card = self.cards.pop()
         return deck.cards.index(next_card)
 
-
 # ♤ ♥ ♧ ♦
 
+
 def str_to_card(s: str, index: int = 0) -> Card:
-    return Card(CardType(s[index]), CardColor(s[index + 1]))
+    cardTypeStr = s[index]
+    if cardTypeStr == "T":
+        cardTypeStr = "10"
+    return Card(CardType(cardTypeStr), CardColor(s[index + 1]))
 
 
 def c(s: str) -> Card:
@@ -59,6 +62,10 @@ class GameResult:
     def make_player_bust(self):
         self.player_busts = True
         return self.make_croupier_winning()
+
+    def make_deuce(self):
+        self.deuce = True
+        return self
 
     def assert_game_result(self, game: Game, test_case: unittest.TestCase) -> None:
         test_case.assertEqual(self.deuce, game.deuce())
@@ -129,6 +136,7 @@ class BlackjackTest(unittest.TestCase):
         self.check_one_hand("K♤p Q♥p 2♦c 4♧c 5♤c J♧c", GameResult().make_croupier_winning())
         self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤c J♧c", GameResult().make_croupier_bust())
         self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤p", GameResult().make_player_bust())
+        self.check_one_hand("K♤p Q♥p T♤c T♥c", GameResult().make_deuce())
 
     @staticmethod
     def test_card_equal():

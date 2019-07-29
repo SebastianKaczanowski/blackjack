@@ -194,7 +194,7 @@ class GameResultKeeper:
         self.human.hit(cards)
 
     def deuce(self) -> bool:
-        return False
+        return (not self.human.wins_with(self.croupier)) and (not self.croupier.wins_with(self.human))
 
     def croupier_wins(self) -> bool:
         return self.croupier.wins_with(self.human)
