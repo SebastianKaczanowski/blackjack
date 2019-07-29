@@ -56,6 +56,10 @@ class GameResult:
         self.croupier_busts = True
         return self.make_player_winning()
 
+    def make_player_bust(self):
+        self.player_busts = True
+        return self.make_croupier_winning()
+
     def assert_game_result(self, game: Game, test_case: unittest.TestCase) -> None:
         test_case.assertEqual(self.deuce, game.deuce())
         test_case.assertEqual(self.player_busts, game.player_busts())
@@ -124,6 +128,7 @@ class BlackjackTest(unittest.TestCase):
     def test_various_hands(self):
         self.check_one_hand("K♤p Q♥p 2♦c 4♧c 5♤c J♧c", GameResult().make_croupier_winning())
         self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤c J♧c", GameResult().make_croupier_bust())
+        self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤p", GameResult().make_player_bust())
 
     @staticmethod
     def test_card_equal():

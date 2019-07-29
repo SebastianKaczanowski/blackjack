@@ -61,7 +61,7 @@ class CardType(Enum):
 
 
 card_values: Dict[CardType, Sequence[int]] = {
-    CardType.ACE: [1, 11],
+    CardType.ACE: [11, 1],
     CardType.TWO: [2],
     CardType.THREE: [3],
     CardType.FOUR: [4],
@@ -146,6 +146,14 @@ class Croupier:
     def next_few_cards(self, cards_number: int) -> List[Card]:
         return list(map(lambda _: self.next_card(), ([1]*cards_number)))
 
+class PlayerResultKeeper:
+    MAX_SCORE: int = 21
+
+    player_cards: List[Card]
+
+    def busts(self, cards: List[Card]) -> bool:
+        return self.cards_value(cards) > self.MAX_SCORE
+
 
 class GameResultKeeper:
 
@@ -154,16 +162,13 @@ class GameResultKeeper:
     human_player_cards: List[Card]
     croupier_cards: List[Card]
 
-    was_croupier_hit: bool = False
-
     def __init__(self):
         self.human_player_cards = []
         self.croupier_cards = []
 
     def start(self, human_player_cards: List[Card], croupier_cards: List[Card]):
-        self.human_player_hit(human_player_cards)
+        self.player_hit(human_player_cards)
         self.croupier_hit(croupier_cards)
-        self.was_croupier_hit = False
 
     def get_croupier_cards(self) -> Sequence[Card]:
         return self.croupier_cards
@@ -173,25 +178,35 @@ class GameResultKeeper:
 
     def croupier_hit(self, cards: List[Card]):
         self.croupier_cards.extend(cards)
-        self.was_croupier_hit = True
 
-    def human_player_hit(self, cards: List[Card]):
+    def player_hit(self, cards: List[Card]):
         self.human_player_cards.extend(cards)
 
     def deuce(self) -> bool:
         return False
 
     def croupier_wins(self) -> bool:
-        return self.was_croupier_hit
+        return (not self.croupier_busts()) and (self.player_busts()
+            or self.first_hand_values_higher_then_second(self.croupier_cards, self.human_player_cards))
 
     def player_wins(self) -> bool:
-        return not self.was_croupier_hit
+        return (not self.player_busts()) and (self.croupier_busts()
+            or self.first_hand_values_higher_then_second(self.human_player_cards, self.croupier_cards))
 
     def croupier_busts(self) -> bool:
-        return False
+        return self.busts(self.croupier_cards)
 
     def player_busts(self) -> bool:
-        return False
+        return self.busts(self.human_player_cards)
+
+    def cards_value(self, cards: List[Card]) -> int:
+        return sum(map(lambda card: card_values[card.card_type][0], cards))
+
+    def busts(self, cards: List[Card]) -> bool:
+        return self.cards_value(cards) > self.MAX_SCORE
+
+    def first_hand_values_higher_then_second(self, hand1: List[Card], hand2: List[Card]):
+        return self.cards_value(hand1) > self.cards_value(hand2)
 
 
 class Game:
@@ -216,6 +231,9 @@ class Game:
 
     def croupier_hit(self):
         self.result_keeper.croupier_hit(self.croupier.next_few_cards(1))
+
+    def player_hit(self):
+        self.result_keeper.player_hit(self.croupier.next_few_cards(1))
 
 
 class GameFactory:
