@@ -90,7 +90,7 @@ class Card:
 
     def __repr__(self):
         return self.__str__()
-    
+
     def __key(self):
         return self.card_type, self.card_color
 
@@ -102,7 +102,6 @@ class Card:
 
 
 class Deck:
-
     cards: Sequence[Card]
 
     def __init__(self):
@@ -128,7 +127,6 @@ class RandomShuffle(Shuffle, ABC):
 
 
 class Croupier:
-
     shuffle: Shuffle
     deck: Deck
 
@@ -144,73 +142,74 @@ class Croupier:
         return self.deck.get_card(next_card_index)
 
     def next_few_cards(self, cards_number: int) -> List[Card]:
-        return list(map(lambda _: self.next_card(), ([1]*cards_number)))
+        return list(map(lambda _: self.next_card(), ([1] * cards_number)))
+
 
 class PlayerResultKeeper:
     MAX_SCORE: int = 21
 
-    player_cards: List[Card]
+    def __init__(self):
+        self.player_cards = []
 
-    def busts(self, cards: List[Card]) -> bool:
-        return self.cards_value(cards) > self.MAX_SCORE
+    def cards_value(self) -> int:
+        return sum(map(lambda card: card_values[card.card_type][0], self.player_cards))
+
+    def busts(self) -> bool:
+        return self.cards_value() > self.MAX_SCORE
+
+    def higher_then_other(self, other_keeper):
+        return self.cards_value() > other_keeper.cards_value()
+
+    def wins_with(self, other_keeper) -> bool:
+        return (not self.busts()) and (other_keeper.busts() or self.higher_then_other(other_keeper))
+
+    def hit(self, cards: List[Card]):
+        self.player_cards.extend(cards)
+
+    def get_cards(self) -> Sequence[Card]:
+        return self.player_cards
 
 
 class GameResultKeeper:
-
     MAX_SCORE: int = 21
 
-    human_player_cards: List[Card]
-    croupier_cards: List[Card]
-
     def __init__(self):
-        self.human_player_cards = []
-        self.croupier_cards = []
+        self.human = PlayerResultKeeper()
+        self.croupier = PlayerResultKeeper()
 
     def start(self, human_player_cards: List[Card], croupier_cards: List[Card]):
         self.player_hit(human_player_cards)
         self.croupier_hit(croupier_cards)
 
     def get_croupier_cards(self) -> Sequence[Card]:
-        return self.croupier_cards
+        return self.croupier.get_cards()
 
     def get_human_player_cards(self) -> Sequence[Card]:
-        return self.human_player_cards
+        return self.human.get_cards()
 
     def croupier_hit(self, cards: List[Card]):
-        self.croupier_cards.extend(cards)
+        self.croupier.hit(cards)
 
     def player_hit(self, cards: List[Card]):
-        self.human_player_cards.extend(cards)
+        self.human.hit(cards)
 
     def deuce(self) -> bool:
         return False
 
     def croupier_wins(self) -> bool:
-        return (not self.croupier_busts()) and (self.player_busts()
-            or self.first_hand_values_higher_then_second(self.croupier_cards, self.human_player_cards))
+        return self.croupier.wins_with(self.human)
 
     def player_wins(self) -> bool:
-        return (not self.player_busts()) and (self.croupier_busts()
-            or self.first_hand_values_higher_then_second(self.human_player_cards, self.croupier_cards))
+        return self.human.wins_with(self.croupier)
 
     def croupier_busts(self) -> bool:
-        return self.busts(self.croupier_cards)
+        return self.croupier.busts()
 
     def player_busts(self) -> bool:
-        return self.busts(self.human_player_cards)
-
-    def cards_value(self, cards: List[Card]) -> int:
-        return sum(map(lambda card: card_values[card.card_type][0], cards))
-
-    def busts(self, cards: List[Card]) -> bool:
-        return self.cards_value(cards) > self.MAX_SCORE
-
-    def first_hand_values_higher_then_second(self, hand1: List[Card], hand2: List[Card]):
-        return self.cards_value(hand1) > self.cards_value(hand2)
+        return self.human.busts()
 
 
 class Game:
-
     croupier: Croupier
     result_keeper: GameResultKeeper
 

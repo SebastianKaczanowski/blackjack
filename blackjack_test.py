@@ -102,7 +102,7 @@ class BlackjackTest(unittest.TestCase):
         game.croupier_hit()
         GameResult.croupier_win_check(game, self)
 
-        self.assertEqual(cs(croupier_cards), game.croupier_cards)
+        self.assertEqual(cs(croupier_cards), game.get_croupier_cards())
 
     def cards_for_action_predicate(self, cards: List[Card], actions: List[str], predicate) -> List[Card]:
         return list(map(lambda p: p[0], filter(lambda p: predicate(p[1]), zip(cards, actions))))
