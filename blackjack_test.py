@@ -137,6 +137,12 @@ class BlackjackTest(unittest.TestCase):
         self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤c J♧c", GameResult().make_croupier_bust())
         self.check_one_hand("K♤p Q♥p 3♦c 4♧c 5♤p", GameResult().make_player_bust())
         self.check_one_hand("K♤p Q♥p T♤c T♥c", GameResult().make_deuce())
+        self.check_one_hand("A♥p T♤p J♧c T♥c", GameResult().make_player_winning())
+        self.check_one_hand("A♥p A♤p J♧c T♥c", GameResult().make_croupier_winning())
+        self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p", GameResult().make_player_winning())
+        self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p", GameResult().make_croupier_winning())
+        self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p A♧p", GameResult().make_croupier_winning())
+        self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p A♧p K♤p Q♥p", GameResult().make_player_bust())
 
     @staticmethod
     def test_card_equal():

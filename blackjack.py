@@ -1,4 +1,6 @@
 import itertools
+from more_itertools import ilen
+from math import ceil
 from abc import ABC
 from typing import Sequence, Dict, List
 from enum import Enum
@@ -60,8 +62,12 @@ class CardType(Enum):
     #     return hash(self.name)
 
 
+ACE_HIGH_VALUE: int = 11
+ACE_LOW_VALUE: int = 1
+ACE_VALUE_DIFF: int = ACE_HIGH_VALUE - ACE_LOW_VALUE
+
 card_values: Dict[CardType, Sequence[int]] = {
-    CardType.ACE: [11, 1],
+    CardType.ACE: [ACE_HIGH_VALUE, ACE_LOW_VALUE],
     CardType.TWO: [2],
     CardType.THREE: [3],
     CardType.FOUR: [4],
@@ -151,8 +157,20 @@ class PlayerResultKeeper:
     def __init__(self):
         self.player_cards = []
 
+    def aces_number(self) -> int:
+        return ilen(filter(lambda card: card.card_type == CardType.ACE, self.player_cards))
+
     def cards_value(self) -> int:
-        return sum(map(lambda card: card_values[card.card_type][0], self.player_cards))
+        first_round: int = sum(map(lambda card: card_values[card.card_type][0], self.player_cards))
+        if first_round <= self.MAX_SCORE:
+            return first_round
+        else:
+            aces: int = self.aces_number()
+            needed_aces = ceil((first_round - self.MAX_SCORE) / ACE_VALUE_DIFF)
+            if needed_aces > aces:
+                return first_round
+            else:
+                return first_round - (ACE_VALUE_DIFF * needed_aces)
 
     def busts(self) -> bool:
         return self.cards_value() > self.MAX_SCORE
