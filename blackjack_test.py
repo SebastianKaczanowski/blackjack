@@ -4,7 +4,7 @@ from abc import ABC
 
 from typing import Sequence, List
 from itertools import groupby
-from blackjack import Game, Card, GameFactory, CardType, CardColor, Shuffle, Deck
+from blackjack import Game, Card, GameFactory, CardType, CardColor, Shuffle, Deck, HitNotPossibleForTerminalGameState
 
 
 class GivenOrderShuffle(Shuffle, ABC):
@@ -22,10 +22,10 @@ class GivenOrderShuffle(Shuffle, ABC):
 
 
 def str_to_card(s: str, index: int = 0) -> Card:
-    cardTypeStr = s[index]
-    if cardTypeStr == "T":
-        cardTypeStr = "10"
-    return Card(CardType(cardTypeStr), CardColor(s[index + 1]))
+    card_type_str = s[index]
+    if card_type_str == "T":
+        card_type_str = "10"
+    return Card(CardType(card_type_str), CardColor(s[index + 1]))
 
 
 def c(s: str) -> Card:
@@ -131,6 +131,9 @@ class BlackjackTest(unittest.TestCase):
         self.assertEqual(player_cards, game.get_human_player_cards())
         self.assertEqual(croupier_cards, game.get_croupier_cards())
         expected_result.assert_game_result(game, self)
+        if expected_result.player_busts or expected_result.croupier_busts:
+            self.assertRaises(HitNotPossibleForTerminalGameState, game.player_hit)
+            self.assertRaises(HitNotPossibleForTerminalGameState, game.croupier_hit)
 
     def test_various_hands(self):
         self.check_one_hand("K♤p Q♥p 2♦c 4♧c 5♤c J♧c", GameResult().make_croupier_winning())
@@ -142,7 +145,7 @@ class BlackjackTest(unittest.TestCase):
         self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p", GameResult().make_player_winning())
         self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p", GameResult().make_croupier_winning())
         self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p A♧p", GameResult().make_croupier_winning())
-        self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p A♧p K♤p Q♥p", GameResult().make_player_bust())
+        self.check_one_hand("A♥p A♤p J♧c T♥c 9♥p A♦p A♧p K♤p", GameResult().make_player_bust())
 
     @staticmethod
     def test_card_equal():

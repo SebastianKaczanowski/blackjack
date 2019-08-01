@@ -9,6 +9,9 @@ from random import randint
 
 # ♠ ♤ ♥ ♡ ♣ ♧ ♦ ♢
 
+class HitNotPossibleForTerminalGameState(Exception):
+    pass
+
 
 class CardValue:
 
@@ -246,11 +249,19 @@ class Game:
     def get_cards_left_in_deck(self) -> Sequence[Card]:
         return self.croupier.get_cards_left_in_deck()
 
+    def generic_hit(self, concrete_hit):
+        if self.state_is_terminal():
+            raise HitNotPossibleForTerminalGameState()
+        concrete_hit(self.croupier.next_few_cards(1))
+
     def croupier_hit(self):
-        self.result_keeper.croupier_hit(self.croupier.next_few_cards(1))
+        self.generic_hit(self.result_keeper.croupier_hit)
 
     def player_hit(self):
-        self.result_keeper.player_hit(self.croupier.next_few_cards(1))
+        self.generic_hit(self.result_keeper.player_hit)
+
+    def state_is_terminal(self) -> bool:
+        return self.croupier_busts() or self.player_busts()
 
 
 class GameFactory:
